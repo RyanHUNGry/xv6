@@ -15,6 +15,7 @@ int open(const char*, int);
 int mknod(const char*, short, short);
 int unlink(const char*);
 int fstat(int fd, struct stat*);
+int trace(int);
 int link(const char*, const char*);
 int mkdir(const char*);
 int chdir(const char*);

@@ -54,8 +54,7 @@ void panic(char*);
 struct cmd *parsecmd(char*);
 
 // Execute cmd.  Never returns.
-void
-runcmd(struct cmd *cmd)
+__attribute__((noreturn)) void runcmd(struct cmd *cmd)
 {
   int p[2];
   struct backcmd *bcmd;
@@ -148,7 +147,8 @@ main(void)
   int fd;
 
   // Ensure that three file descriptors are open.
-  while((fd = open("console", O_RDWR)) >= 0){
+  fd = open("console", O_RDWR);
+  while (fd >= 0) {
     if(fd >= 3){
       close(fd);
       break;
