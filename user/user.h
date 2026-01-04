@@ -1,5 +1,6 @@
 struct stat;
 struct rtcdate;
+struct sysinfo;
 
 // system calls
 int fork(void);
@@ -16,6 +17,7 @@ int mknod(const char*, short, short);
 int unlink(const char*);
 int fstat(int fd, struct stat*);
 int trace(int);
+int sysinfo(struct sysinfo*);
 int link(const char*, const char*);
 int mkdir(const char*);
 int chdir(const char*);

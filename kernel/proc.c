@@ -657,3 +657,14 @@ procdump(void)
     printf("\n");
   }
 }
+
+uint64 num_free_p(void) {
+  uint64 res = 0;
+  for (int i = 0; i < NPROC; i++) {
+    struct proc p = proc[i];
+    if (p.state != UNUSED) {
+      res++;
+    }
+  }
+  return res;
+}
