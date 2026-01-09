@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "memlayout.h"
 
 struct cpu cpus[NCPU];
 
@@ -127,6 +128,18 @@ found:
     return 0;
   }
 
+  // Allocate a read-only PID page for user processes to read their PID from.
+  void *pid_page_pointer = kalloc();
+  if (pid_page_pointer == 0) {
+    freeproc(p);
+    release(&p->lock);
+    return 0;
+  }
+  struct usyscall _usyscall;
+  _usyscall.pid = p->pid;
+  memmove(pid_page_pointer, &_usyscall, sizeof(_usyscall));
+  p->pid_page_pointer = (uint64)pid_page_pointer;
+  
   // An empty user page table.
   p->pagetable = proc_pagetable(p);
   if(p->pagetable == 0){
@@ -153,6 +166,9 @@ freeproc(struct proc *p)
   if(p->trapframe)
     kfree((void*)p->trapframe);
   p->trapframe = 0;
+  if(p->pid_page_pointer)
+    kfree((void*)p->pid_page_pointer);
+  p->pid_page_pointer = 0;
   if(p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
   p->pagetable = 0;
@@ -196,6 +212,14 @@ proc_pagetable(struct proc *p)
     return 0;
   }
 
+  // // map a user privileged, read-only page
+  // if (mappages(pagetable, USYSCALL, PGSIZE, p->pid_page_pointer, PTE_U | PTE_R) < 0) {
+  //   uvmunmap(pagetable, TRAMPOLINE, 1, 0);
+  //   uvmunmap(pagetable, TRAPFRAME, 1, 0);
+  //   uvmfree(pagetable, 0);
+  //   return 0;
+  // }
+  
   return pagetable;
 }
 
