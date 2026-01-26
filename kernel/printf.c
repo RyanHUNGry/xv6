@@ -117,6 +117,7 @@ printf(char *fmt, ...)
 void
 panic(char *s)
 {
+  backtrace();
   pr.locking = 0;
   printf("panic: ");
   printf(s);
@@ -132,3 +133,45 @@ printfinit(void)
   initlock(&pr.lock, "pr");
   pr.locking = 1;
 }
+
+void
+backtrace() {
+  uint64 current_fp = r_fp();
+
+  printf("backtrace:\n");
+
+  // Each stack maps to a page
+  uint64 PAGE_TOP = PGROUNDDOWN(current_fp);
+  uint64 PAGE_BOTTOM = PAGE_TOP + PGSIZE;
+
+  while (current_fp >= PAGE_TOP && current_fp < PAGE_BOTTOM) {
+    printf("%p\n", *(uint64 *)(current_fp - 8));
+    uint64 previous_fp = *(uint64 *)(current_fp - 16);
+    current_fp = previous_fp;
+  };
+}
+
+// void
+// backtrace(void)
+// {
+//   uint64 fp = r_fp();
+
+//   printf("backtrace:\n");
+
+//   // kernel stack is 1 page
+//   uint64 page_bottom = PGROUNDDOWN(fp);
+//   uint64 page_top    = page_bottom + PGSIZE;
+
+//   while (fp >= page_bottom + 16 && fp < page_top) {
+//     uint64 ra  = *(uint64 *)(fp - 8);   // saved return address
+//     uint64 prev_fp = *(uint64 *)(fp - 16); // saved caller fp
+
+//     printf("%p\n", ra);
+
+//     // safety: stop if chain is broken
+//     if (prev_fp <= fp || prev_fp < page_bottom || prev_fp >= page_top)
+//       break;
+
+//     fp = prev_fp;
+//   }
+// }

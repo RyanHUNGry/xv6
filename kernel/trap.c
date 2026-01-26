@@ -66,7 +66,49 @@ usertrap(void)
 
     syscall();
   } else if((which_dev = devintr()) != 0){
-    // ok
+    if (which_dev == 2) {
+      struct proc *p = myproc();
+      p->alarm_ticks++;
+      if (p->alarm_ticks == p->alarm_interval && !p->guard) {
+        p->guard = 1;
+        // Here, we will need to store the current execution registers
+        p->rft.ra  = p->trapframe->ra;
+        p->rft.sp  = p->trapframe->sp;
+        p->rft.gp  = p->trapframe->gp;
+        p->rft.tp  = p->trapframe->tp;
+        p->rft.t0  = p->trapframe->t0;
+        p->rft.t1  = p->trapframe->t1;
+        p->rft.t2  = p->trapframe->t2;
+        p->rft.s0  = p->trapframe->s0;
+        p->rft.s1  = p->trapframe->s1;
+        p->rft.a0  = p->trapframe->a0;
+        p->rft.a1  = p->trapframe->a1;
+        p->rft.a2  = p->trapframe->a2;
+        p->rft.a3  = p->trapframe->a3;
+        p->rft.a4  = p->trapframe->a4;
+        p->rft.a5  = p->trapframe->a5;
+        p->rft.a6  = p->trapframe->a6;
+        p->rft.a7  = p->trapframe->a7;
+        p->rft.s2  = p->trapframe->s2;
+        p->rft.s3  = p->trapframe->s3;
+        p->rft.s4  = p->trapframe->s4;
+        p->rft.s5  = p->trapframe->s5;
+        p->rft.s6  = p->trapframe->s6;
+        p->rft.s7  = p->trapframe->s7;
+        p->rft.s8  = p->trapframe->s8;
+        p->rft.s9  = p->trapframe->s9;
+        p->rft.s10 = p->trapframe->s10;
+        p->rft.s11 = p->trapframe->s11;
+        p->rft.t3  = p->trapframe->t3;
+        p->rft.t4  = p->trapframe->t4;
+        p->rft.t5  = p->trapframe->t5;
+        p->rft.t6  = p->trapframe->t6;
+        p->rft.return_address = p->trapframe->epc;
+
+        p->alarm_ticks = 0;
+        p->trapframe->epc = (uint64)p->alarm_handler;
+      }
+    }
   } else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
