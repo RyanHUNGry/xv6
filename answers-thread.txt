@@ -1,0 +1,1 @@
+1. If two threads write to the same bucket, their updates to the linked list can be lost. Two key nodes can be added as heads, but only one will be pointed to as head by `table`.
