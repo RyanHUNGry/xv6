@@ -365,19 +365,38 @@ iunlockput(struct inode *ip)
   iput(ip);
 }
 
-// Inode content
-//
-// The content (data) associated with each inode is stored
-// in blocks on the disk. The first NDIRECT block numbers
-// are listed in ip->addrs[].  The next NINDIRECT blocks are
-// listed in block ip->addrs[NDIRECT].
+/*
+Doubly indirect blocks. addrs[12] will point to a block number.
+Inside this block will be 256 block numbers, each pointing to another block with 256 block numbers
+each of which point to a data block.
 
-// Return the disk block address of the nth block in inode ip.
-// If there is no such block, bmap allocates one.
+bn mapping:
+0-10: direct blocks
+11-266: using singly indirect block
+267-65802: using doubly indirect block
+
+# say we need bn = 269
+# We will go into the doubly indirect block, it will be the 0th index of that block
+# then, we take the remainder, meaning we get the 2nd index of the singly direct block
+
+# compute index of doubly indirect block:
+# compute index of the nested singly indirect block: 
+
+# 1. IF final data block number is there, return the block number
+
+# otherwise, we will need to balloc() in these 3 places
+# 1a. In the doubly indirect block, we will need to allocate a block if it is not there
+  - ip->addrs[13] = balloc(ip->dev);
+# 1b. In the singly indirect block, we will need to allocate a block if it is not there
+  - a_single[2] = balloc(ip->dev);
+# 1c. Finally, we will need to allocate the final data block if it is not there
+  - a_final[2] = balloc(ip->dev);
+
+*/
 static uint
 bmap(struct inode *ip, uint bn)
 {
-  uint addr, *a;
+  uint addr, *a, *a_double, *a_single;
   struct buf *bp;
 
   if(bn < NDIRECT){
@@ -395,6 +414,28 @@ bmap(struct inode *ip, uint bn)
     a = (uint*)bp->data;
     if((addr = a[bn]) == 0){
       a[bn] = addr = balloc(ip->dev);
+      log_write(bp);
+    }
+    brelse(bp);
+    return addr;
+  }
+
+  bn -= (NINDIRECT);
+
+  if (bn < NINDIRECT * NINDIRECT) {
+    if((addr = ip->addrs[13]) == 0)
+      ip->addrs[13] = addr = balloc(ip->dev);
+    bp = bread(ip->dev, addr);
+    a_double = (uint*)bp->data;
+    if((addr = a_double[bn/NINDIRECT]) == 0){
+      a_double[bn/NINDIRECT] = addr = balloc(ip->dev);
+      log_write(bp);
+    }
+    brelse(bp);
+    bp = bread(ip->dev, addr);
+    a_single = (uint*)bp->data;
+    if((addr = a_single[bn % NINDIRECT]) == 0){
+      a_single[bn % NINDIRECT] = addr = balloc(ip->dev);
       log_write(bp);
     }
     brelse(bp);
